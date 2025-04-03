@@ -1,13 +1,16 @@
-const express = require('express');
+import { ApolloServer } from '@apollo/server';
 
-const {PrismaClient} = require('@prisma/client')
+import {startStandaloneServer} from '@apollo/server/standalone'
 
-const prisma = new PrismaClient();
+import { typeDefs } from './graphql/schemas/bookingSchema.js';
 
-const app = express();
+import { resolvers } from './graphql/resolvers/bookingResolver.js';
 
-app.get('/', async (req, res) => {
-    return res.status(200).json(await prisma.$queryRaw`SELECT now() as current_time`);
-})
+const server = new ApolloServer({typeDefs, resolvers});
 
-app.listen(3000, () => console.log('App running on port 3000'));
+const {url} = await startStandaloneServer(server, {
+    listen: {port: process.env.PORT || 4000}
+});
+
+console.log(`server running at: ${url}`);
+

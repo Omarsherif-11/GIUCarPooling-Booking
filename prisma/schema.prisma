@@ -7,6 +7,18 @@ generator client {
     provider = "prisma-client-js"
 }
 
-model Dummy {
+enum Status {
+  pending
+  succeeded
+  failed
+  canceled
+}
+
+model Booking {
   id Int @id @default(autoincrement())
+  ride_id Int
+  user_id Int
+  price Int
+  successful Boolean @default(false)
+  status Status @default(pending)
 }
