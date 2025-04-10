@@ -8,14 +8,22 @@ export const typeDefs = gql`
     canceled
   }
 
+  enum RideStatus {
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    CANCELED
+  }
+
   type Query {
     getBookings(user_id: Int!): [Booking]
     viewBookings(user_id: Int!): [Booking]
     booking(id: ID!): Booking
+    getAvailableRides: [Ride]
   }
   
   type Mutation {
-    createBooking(user_id: Int!, ride_id: Int!, price: Int!): Booking
+    createBooking(user_id: Int!, ride_id: Int!, meeting_point_id: Int!): Booking
   }
 
   type Booking {
@@ -25,13 +33,26 @@ export const typeDefs = gql`
     price: Int
     successful: Boolean
     status: Status
-    # ride: Ride
+    ride: Ride
   }
 
-#   type Ride {
-#     id: ID!
-#     driverId: ID!
-#     departureTime: String!
-#     seatsAvailable: Int!
-#   }
+  type Ride {
+    id: ID!
+    driver_id: Int
+    departure_time: String
+    seats_available: Int
+    status: RideStatus
+    girls_only: Boolean
+    to_giu: Boolean
+    area_id: Int
+    meeting_points: [RideMeetingPoint]
+  }
+
+  type RideMeetingPoint {
+    id: ID!
+    ride_id: Int
+    meeting_point_id: Int
+    price: Int
+    order_index: Int
+  }
 `;
