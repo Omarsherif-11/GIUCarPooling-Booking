@@ -8,17 +8,17 @@ generator client {
 }
 
 enum Status {
-  pending
-  succeeded
-  failed
-  canceled
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
 }
 
 enum RideStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
-  CANCELED
+  CANCELLED
 }
 
 model Booking {
@@ -28,7 +28,7 @@ model Booking {
   price Int
   meeting_point_id Int?  // Add this field to store the meeting point
   successful Boolean @default(false)
-  status Status @default(pending)
+  status Status @default(PENDING)
   ride LocalRide? @relation(fields: [ride_id], references: [id])
 }
 

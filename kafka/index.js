@@ -45,9 +45,58 @@ export const sendBookingCreatedEvent = async (booking) => {
     });
     console.log(`Booking created event sent for booking ${booking.id}`);
     
-    return { status: 'pending', bookingId: booking.id };
+    return { status: 'PENDING', bookingId: booking.id };
   } catch (error) {
     console.error(`Error sending booking created event: ${error.message}`);
+    throw error;
+  }
+};
+
+// Send booking canceled event asynchronously
+export const sendBookingCanceledEvent = async (booking) => {
+  try {
+    await producer.send({
+      topic: 'booking-canceled',
+      messages: [
+        { 
+          key: String(booking.id), 
+          value: JSON.stringify({
+            bookingId: booking.id,
+            rideId: booking.ride_id,
+            userId: booking.user_id
+          }) 
+        },
+      ],
+    });
+    console.log(`Booking canceled event sent for booking ${booking.id}`);
+    
+    return { status: 'canceled', bookingId: booking.id };
+  } catch (error) {
+    console.error(`Error sending booking canceled event: ${error.message}`);
+    throw error;
+  }
+};
+
+// Send ride status update event asynchronously
+export const sendRideStatusUpdateEvent = async (ride) => {
+  try {
+    await producer.send({
+      topic: 'ride-status-update',
+      messages: [
+        { 
+          key: String(ride.id), 
+          value: JSON.stringify({
+            rideId: ride.id,
+            status: ride.status
+          }) 
+        },
+      ],
+    });
+    console.log(`Ride status update event sent for ride ${ride.id} with status ${ride.status}`);
+    
+    return { rideId: ride.id, status: ride.status };
+  } catch (error) {
+    console.error(`Error sending ride status update event: ${error.message}`);
     throw error;
   }
 };

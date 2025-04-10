@@ -2,17 +2,17 @@ import { gql } from 'graphql-tag';
 
 export const typeDefs = gql`
   enum Status {
-    pending
-    succeeded
-    failed
-    canceled
+    PENDING
+    SUCCEEDED
+    FAILED
+    CANCELLED
   }
 
   enum RideStatus {
     PENDING
     IN_PROGRESS
     COMPLETED
-    CANCELED
+    CANCELLED
   }
 
   type Query {
@@ -24,6 +24,8 @@ export const typeDefs = gql`
   
   type Mutation {
     createBooking(user_id: Int!, ride_id: Int!, meeting_point_id: Int!): Booking
+    cancelBooking(id: Int!): Booking
+    updateRideStatus(id: Int!, status: RideStatus!): Ride
   }
 
   type Booking {

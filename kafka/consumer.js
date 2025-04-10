@@ -22,6 +22,8 @@ export const initConsumer = async () => {
     await consumer.subscribe({ topic: 'ride-created', fromBeginning: false });
     await consumer.subscribe({ topic: 'ride-updated', fromBeginning: false });
     await consumer.subscribe({ topic: 'passenger-added-to-ride', fromBeginning: false });
+    await consumer.subscribe({ topic: 'passenger-removed-from-ride', fromBeginning: false });
+    await consumer.subscribe({ topic: 'ride-status-changed', fromBeginning: false });
     
     // Set up message handler
     await consumer.run({
@@ -33,7 +35,7 @@ export const initConsumer = async () => {
             // Update booking status to succeeded
             await prisma.booking.update({
               where: { id: messageValue.bookingId },
-              data: { status: "succeeded", successful: true }
+              data: { status: "SUCCEEDED", successful: true }
             });
             console.log(`Booking ${messageValue.bookingId} marked as succeeded`);
           } 
@@ -41,7 +43,7 @@ export const initConsumer = async () => {
             // Update booking status to failed
             await prisma.booking.update({
               where: { id: messageValue.bookingId },
-              data: { status: "failed", successful: false }
+              data: { status: "FAILED", successful: false }
             });
             console.log(`Booking ${messageValue.bookingId} marked as failed: ${messageValue.reason}`);
           }
@@ -57,17 +59,34 @@ export const initConsumer = async () => {
             // Update local ride passenger data
             await updateRidePassenger(messageValue);
           }
+          else if (topic === 'passenger-removed-from-ride') {
+            // Remove passenger from local ride
+            await removeRidePassenger(messageValue);
+          }
+          else if (topic === 'ride-status-changed') {
+            // Update ride status and related bookings
+            await updateRideStatus(messageValue);
+          }
         } catch (error) {
           console.error('Error processing Kafka message:', error);
         }
       },
     });
   } catch (error) {
-    console.error('Error setting up Kafka consumer:', error);
+    console.error('Error connecting Kafka consumer:', error);
   }
 };
 
-// Sync ride data from rides service
+// Disconnect Kafka consumer
+export const disconnectConsumer = async () => {
+  try {
+    await consumer.disconnect();
+    console.log('Kafka consumer disconnected successfully');
+  } catch (error) {
+    console.error('Error disconnecting Kafka consumer:', error);
+  }
+};
+
 async function syncRideData(rideData) {
   try {
     // Check if ride already exists
@@ -122,19 +141,18 @@ async function syncRideData(rideData) {
             ride_id: rideData.id,
             meeting_point_id: mp.meeting_point_id || mp.meetingPointId,
             price: mp.price,
-            order_index: index++ // Use array index as order_index since array is ordered
+            order_index: mp.order_index || mp.orderIndex || index++
           }
         });
       }
     }
-
+    
     console.log(`Ride ${rideData.id} synced successfully`);
   } catch (error) {
     console.error(`Error syncing ride data: ${error.message}`);
   }
 }
 
-// Update ride passenger data
 async function updateRidePassenger(passengerData) {
   try {
     const { rideId, passengerId } = passengerData;
@@ -170,12 +188,66 @@ async function updateRidePassenger(passengerData) {
   }
 }
 
-// Disconnect consumer when app is shutting down
-export const disconnectConsumer = async () => {
+async function removeRidePassenger(passengerData) {
   try {
-    await consumer.disconnect();
-    console.log('Kafka consumer disconnected');
+    const { rideId, passengerId } = passengerData;
+    
+    // Check if passenger exists
+    const existingPassenger = await prisma.localRidePassenger.findFirst({
+      where: {
+        ride_id: rideId,
+        passenger_id: passengerId
+      }
+    });
+    
+    if (existingPassenger) {
+      // Remove passenger from local ride
+      await prisma.localRidePassenger.delete({
+        where: { id: existingPassenger.id }
+      });
+      
+      // Update seats available
+      await prisma.localRide.update({
+        where: { id: rideId },
+        data: { seats_available: { increment: 1 } }
+      });
+      
+      console.log(`Passenger ${passengerId} removed from local ride ${rideId}`);
+    }
   } catch (error) {
-    console.error('Error disconnecting Kafka consumer:', error);
+    console.error(`Error removing ride passenger: ${error.message}`);
   }
-};
+}
+
+async function updateRideStatus(statusData) {
+  try {
+    const { rideId, status } = statusData;
+    
+    // Update ride status
+    await prisma.localRide.update({
+      where: { id: rideId },
+      data: { status }
+    });
+    
+    // If ride is canceled, update all associated bookings
+    if (status === "CANCELED") {
+      await prisma.booking.updateMany({
+        where: { 
+          ride_id: rideId,
+          status: {
+            not: "canceled"
+          }
+        },
+        data: { 
+          status: "canceled",
+          successful: false
+        }
+      });
+      console.log(`All bookings for ride ${rideId} marked as canceled`);
+    }
+    
+    console.log(`Ride ${rideId} status updated to ${status}`);
+  } catch (error) {
+    console.error(`Error updating ride status: ${error.message}`);
+  }
+}
