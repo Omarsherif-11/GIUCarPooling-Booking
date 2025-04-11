@@ -8,10 +8,17 @@ generator client {
 }
 
 enum Status {
-  pending
-  succeeded
-  failed
-  canceled
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum RideStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 model Booking {
@@ -19,6 +26,44 @@ model Booking {
   ride_id Int
   user_id Int
   price Int
+  meeting_point_id Int?  // Add this field to store the meeting point
   successful Boolean @default(false)
-  status Status @default(pending)
+  status Status @default(PENDING)
+  ride LocalRide? @relation(fields: [ride_id], references: [id])
+}
+
+// Local copy of ride data for validation
+model LocalRide {
+  id Int @id
+  driver_id Int
+  departure_time DateTime
+  seats_available Int
+  status RideStatus @default(PENDING)
+  girls_only Boolean @default(false)
+  to_giu Boolean
+  area_id Int
+  bookings Booking[]
+  meeting_points LocalRideMeetingPoint[]
+  passengers LocalRidePassenger[]
+}
+
+model LocalRideMeetingPoint {
+  id Int @id @default(autoincrement())
+  ride_id Int
+  meeting_point_id Int
+  price Int
+  order_index Int
+  ride LocalRide @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+
+  @@unique([ride_id, meeting_point_id])
+}
+
+model LocalRidePassenger {
+  id Int @id @default(autoincrement())
+  ride_id Int
+  passenger_id Int
+  passenger_name String
+  ride LocalRide @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+
+  @@unique([ride_id, passenger_id])
 }
