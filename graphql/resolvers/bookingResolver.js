@@ -19,6 +19,24 @@ export const resolvers = {
             return await prisma.booking.findMany();
             //Else return unauthorized
         },
+
+        booking: async (_, { id }) => {
+            try {
+                const booking = await prisma.booking.findUnique({
+                    where: { id: parseInt(id) },
+                    include: { ride: true }
+                });
+                
+                if (!booking) {
+                    throw new Error("Booking not found");
+                }
+                
+                return booking;
+            } catch (error) {
+                console.error("Error fetching booking:", error);
+                throw new Error(`Failed to fetch booking: ${error.message}`);
+            }
+        },
         
         getAvailableRides: async () => {
             const rideService = new RideService();
