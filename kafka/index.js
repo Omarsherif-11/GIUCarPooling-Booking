@@ -10,10 +10,13 @@ const kafka = new Kafka({
 // Create a producer
 const producer = kafka.producer();
 
+let isKafkaConnected = false;
+
 // Initialize producer connection
 export const initKafka = async () => {
   try {
     await producer.connect();
+    isKafkaConnected = true;
     console.log('Kafka producer connected successfully');
   } catch (error) {
     console.error('Error connecting to Kafka:', error);
@@ -26,7 +29,13 @@ export const sendBookingCreatedEvent = async (booking) => {
     // Get meeting point ID from the booking
     const meetingPointId = booking.meeting_point_id;
     
-    // Send the event
+    if (!isKafkaConnected) {
+      console.warn('⚠️ Kafka producer not connected. Connecting now...');
+      await producer.connect();
+      isKafkaConnected = true;
+    }
+
+    // Send the event 
     await producer.send({
       topic: 'booking-created',
       messages: [
