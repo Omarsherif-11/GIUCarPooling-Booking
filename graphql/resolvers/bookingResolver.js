@@ -41,7 +41,15 @@ export const resolvers = {
         getAvailableRides: async () => {
             const rideService = new RideService();
             return await rideService.getAvailableRides();
-        }
+        },
+        getPaymentUrl: async (_,{booking_id}) => {
+            const payment = await prisma.payments.findUnique({
+                where: {
+                    user_booking_id: booking_id
+                }
+            });
+            return payment?.checkout_url ?? null;
+        },
     },
 
     Mutation: {

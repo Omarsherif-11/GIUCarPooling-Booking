@@ -20,6 +20,7 @@ export const typeDefs = gql`
     viewBookings(user_id: Int!): [Booking]
     booking(id: ID!): Booking
     getAvailableRides: [Ride]
+    getPaymentUrl(booking_id: Int!): String
   }
   
   type Mutation {
