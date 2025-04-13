@@ -6,6 +6,7 @@ import { resolvers } from './graphql/resolvers/bookingResolver.js';
 import { prisma } from './db.js';
 import { initKafka, disconnectKafka } from './kafka/index.js';
 import { initConsumer, disconnectConsumer } from './kafka/consumer.js';
+import { authMiddleware } from './middleware/auth.js';
 
 // Initialize Kafka
 await initKafka();
@@ -25,7 +26,13 @@ const server = new ApolloServer({
 
 const { url } = await startStandaloneServer(server, {
   listen: { port: 4001 },
-  context: async () => ({ prisma })
+  context: async ({ req }) => {
+    const auth = await authMiddleware({ req });
+    return {
+      prisma,
+      user: auth.user
+    };
+  }
 });
 
 console.log(`🚀 Booking service ready at ${url}`);

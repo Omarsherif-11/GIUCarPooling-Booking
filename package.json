@@ -20,7 +20,8 @@
     "graphql": "^16.10.0",
     "graphql-tag": "^2.12.6",
     "jsonwebtoken": "^9.0.2",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "nodemon": "^3.1.9"
   },
   "devDependencies": {
     "@babel/core": "^7.26.10",

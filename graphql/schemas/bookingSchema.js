@@ -16,14 +16,14 @@ export const typeDefs = gql`
   }
 
   type Query {
-    getBookings(user_id: Int!): [Booking]
-    viewBookings(user_id: Int!): [Booking]
+    getBookings: [Booking]
+    viewBookings: [Booking]
     booking(id: ID!): Booking
     getAvailableRides: [Ride]
   }
   
   type Mutation {
-    createBooking(user_id: Int!, ride_id: Int!, meeting_point_id: Int!): Booking
+    createBooking(ride_id: Int!, meeting_point_id: Int!): Booking
     cancelBooking(id: Int!): Booking
     updateRideStatus(id: Int!, status: RideStatus!): Ride
   }

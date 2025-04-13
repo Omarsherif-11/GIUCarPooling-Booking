@@ -5,22 +5,28 @@ import { RideService } from "../../services/rideService.js";
 
 export const resolvers = {
     Query: {
-        getBookings: async (_, {user_id}) => {
-            //First param is parent, second is args
+        getBookings: async (_, __, context) => {
+            if (!context.user) {
+                throw new Error("Not authenticated");
+            }
             return await prisma.booking.findMany({
                 where: {
-                    user_id: user_id
+                    user_id: context.user.id
                 }
             });
         },
 
-        viewBookings: async (_, {user_id}) => {
-            //If user_id is an admin user
+        viewBookings: async (_, __, context) => {
+            if (!context.user || !context.user.isAdmin) {
+                throw new Error("Not authorized");
+            }
             return await prisma.booking.findMany();
-            //Else return unauthorized
         },
 
-        booking: async (_, { id }) => {
+        booking: async (_, { id }, context) => {
+            if (!context.user) {
+                throw new Error("Not authenticated");
+            }
             try {
                 const booking = await prisma.booking.findUnique({
                     where: { id: parseInt(id) },
@@ -29,6 +35,11 @@ export const resolvers = {
                 
                 if (!booking) {
                     throw new Error("Booking not found");
+                }
+
+                // Only allow access if user is admin or the booking belongs to them
+                if (!context.user.isAdmin && booking.user_id !== context.user.id) {
+                    throw new Error("Not authorized to view this booking");
                 }
                 
                 return booking;
@@ -45,27 +56,28 @@ export const resolvers = {
     },
 
     Mutation: {
-        createBooking: async (_, args) => {
-            const {user_id, ride_id, meeting_point_id} = args;
+        createBooking: async (_, { ride_id, meeting_point_id }, context) => {
+            if (!context.user) {
+                throw new Error("Not authenticated");
+            }
             
             try {
                 const rideService = new RideService();
                 
                 // Validate ride is available for booking locally
-                const ride = await rideService.validateRideForBooking(ride_id, user_id);
+                const ride = await rideService.validateRideForBooking(ride_id, context.user.id);
                 
                 // Get price for the meeting point
                 const price = await rideService.getPriceForMeetingPoint(ride_id, meeting_point_id);
                 
                 // Create booking with PENDING status and meeting point ID
-                // Fix: Use the enum value directly instead of a string
                 const booking = await prisma.booking.create({
                     data: {
-                        user_id,
+                        user_id: context.user.id,
                         ride_id,
                         meeting_point_id,
                         price,
-                        status: "PENDING" // Changed from lowercase "pending" to uppercase "PENDING"
+                        status: "PENDING"
                     }
                 });
                 
@@ -82,7 +94,6 @@ export const resolvers = {
                     });
                 });
                 
-                // Return the booking immediately with pending status
                 return booking;
             } catch (error) {
                 console.error("Error creating booking:", error);
@@ -90,7 +101,11 @@ export const resolvers = {
             }
         },
 
-        cancelBooking: async (_, { id }) => {
+        cancelBooking: async (_, { id }, context) => {
+            if (!context.user) {
+                throw new Error("Not authenticated");
+            }
+
             try {
                 // Get the booking to check if it can be canceled
                 const booking = await prisma.booking.findUnique({
@@ -100,6 +115,11 @@ export const resolvers = {
 
                 if (!booking) {
                     throw new Error("Booking not found");
+                }
+
+                // Only allow cancellation if user is admin or the booking belongs to them
+                if (!context.user.isAdmin && booking.user_id !== context.user.id) {
+                    throw new Error("Not authorized to cancel this booking");
                 }
 
                 if (booking.status === "CANCELLED") {
@@ -131,7 +151,11 @@ export const resolvers = {
             }
         },
 
-        updateRideStatus: async (_, { id, status }) => {
+        updateRideStatus: async (_, { id, status }, context) => {
+            if (!context.user || !context.user.isDriver) {
+                throw new Error("Not authorized");
+            }
+
             try {
                 // Check if ride exists
                 const ride = await prisma.localRide.findUnique({
@@ -140,6 +164,11 @@ export const resolvers = {
 
                 if (!ride) {
                     throw new Error("Ride not found");
+                }
+
+                // Only allow driver of the ride to update status
+                if (ride.driver_id !== context.user.id) {
+                    throw new Error("Not authorized to update this ride");
                 }
 
                 // Validate status transition
