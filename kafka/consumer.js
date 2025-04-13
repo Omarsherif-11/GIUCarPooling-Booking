@@ -104,7 +104,7 @@ async function syncRideData(rideData) {
           seats_available: rideData.seats_available || rideData.seatsAvailable,
           status: rideData.status,
           girls_only: rideData.girls_only || rideData.girlsOnly,
-          to_giu: rideData.to_giu || rideData.toGIU,
+          to_giu: rideData.to_giu || rideData.toGIU || false,
           area_id: rideData.area_id || rideData.areaId
         }
       });
@@ -118,7 +118,7 @@ async function syncRideData(rideData) {
           seats_available: rideData.seats_available || rideData.seatsAvailable,
           status: rideData.status,
           girls_only: rideData.girls_only || rideData.girlsOnly,
-          to_giu: rideData.to_giu || rideData.toGIU,
+          to_giu: rideData.to_giu || rideData.toGIU || false,
           area_id: rideData.area_id || rideData.areaId
         }
       });
