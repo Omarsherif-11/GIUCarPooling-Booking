@@ -82,7 +82,8 @@ export const resolvers = {
                 });
                 
                 // Send event to Kafka for rides service to add passenger
-                sendBookingCreatedEvent(booking).catch(error => {
+                // Pass the user object from context to include email
+                sendBookingCreatedEvent(booking, context.user).catch(error => {
                     console.error("Error sending booking event:", error);
                     
                     // If there's an error sending the event, update booking status to failed

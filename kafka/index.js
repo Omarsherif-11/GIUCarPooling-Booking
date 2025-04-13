@@ -24,7 +24,7 @@ export const initKafka = async () => {
 };
 
 // Send booking created event asynchronously
-export const sendBookingCreatedEvent = async (booking) => {
+export const sendBookingCreatedEvent = async (booking, user) => {
   try {
     // Get meeting point ID from the booking
     const meetingPointId = booking.meeting_point_id;
@@ -45,6 +45,7 @@ export const sendBookingCreatedEvent = async (booking) => {
             bookingId: booking.id,
             rideId: booking.ride_id,
             userId: booking.user_id,
+            userEmail: user?.email || 'unknown@example.com', // Include user email from token
             price: booking.price,
             status: booking.status,
             meetingPointId: meetingPointId
@@ -52,7 +53,7 @@ export const sendBookingCreatedEvent = async (booking) => {
         },
       ],
     });
-    console.log(`Booking created event sent for booking ${booking.id}`);
+    console.log(`Booking created event sent for booking ${booking.id} with user email: ${user?.email || 'unknown'}`);
     
     return { status: 'PENDING', bookingId: booking.id };
   } catch (error) {
