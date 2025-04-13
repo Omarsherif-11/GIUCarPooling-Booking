@@ -52,7 +52,7 @@ export const resolvers = {
         getAvailableRides: async () => {
             const rideService = new RideService();
             return await rideService.getAvailableRides();
-        }
+        },
     },
 
     Mutation: {
