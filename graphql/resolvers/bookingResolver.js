@@ -12,6 +12,9 @@ export const resolvers = {
             return await prisma.booking.findMany({
                 where: {
                     user_id: context.user.id
+                },
+                include: {
+                    ride: true
                 }
             });
         },
