@@ -2,6 +2,10 @@ import { prisma } from "../../db.js";
 import { typeDefs } from "../schemas/bookingSchema.js";
 import { sendBookingCreatedEvent, sendBookingCanceledEvent, sendRideStatusUpdateEvent } from "../../kafka/index.js";
 import { RideService } from "../../services/rideService.js";
+import { NotificationService } from "../../services/notificationService.js";
+
+// Initialize notification service
+const notificationService = new NotificationService();
 
 export const resolvers = {
     Query: {
@@ -96,6 +100,10 @@ export const resolvers = {
                     }).catch(err => {
                         console.error("Error updating booking status:", err);
                     });
+                    
+                    // Send booking failed notification
+                    const meetingPoint = { name: "Selected Meeting Point" }; // Default value
+                    notificationService.sendBookingFailed(booking, context.user, ride, meetingPoint, "Failed to process booking request");
                 });
                 
                 return booking;
@@ -147,6 +155,14 @@ export const resolvers = {
                 sendBookingCanceledEvent(updatedBooking).catch(error => {
                     console.error("Error sending booking cancellation event:", error);
                 });
+                
+                // Get meeting point details for notification
+                const meetingPoint = await prisma.meetingPoint.findUnique({
+                    where: { id: booking.meeting_point_id }
+                }).catch(() => ({ name: "Selected Meeting Point" })); // Default if not found
+                
+                // Send booking cancellation notification
+                notificationService.sendBookingCancellation(updatedBooking, context.user, booking.ride, meetingPoint);
 
                 return updatedBooking;
             } catch (error) {
