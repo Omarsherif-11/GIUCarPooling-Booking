@@ -1,5 +1,9 @@
 import { Kafka } from 'kafkajs';
 import { prisma } from '../db.js';
+import { NotificationService } from '../services/notificationService.js';
+
+// Initialize notification service
+const notificationService = new NotificationService();
 
 // Create the client with the broker list
 const kafka = new Kafka({
@@ -38,6 +42,29 @@ export const initConsumer = async () => {
               data: { status: "SUCCEEDED", successful: true }
             });
             console.log(`Booking ${messageValue.bookingId} marked as succeeded`);
+            
+            // Get booking details for notification
+            const booking = await prisma.booking.findUnique({
+              where: { id: messageValue.bookingId },
+              include: { ride: true }
+            });
+            
+            if (booking) {
+              // Create user object directly from message data since there's no user table in this service
+              const user = {
+                id: booking.user_id,
+                email: messageValue.email,
+                name: messageValue.email
+              };
+              
+              // Get meeting point details
+              const meetingPoint = await prisma.localRideMeetingPoint.findUnique({
+                where: { id: booking.meeting_point_id }
+              }).catch(() => ({ name: 'Selected Meeting Point' }));
+              
+              // Send booking confirmation notification
+              notificationService.sendBookingConfirmation(booking, user, booking.ride, meetingPoint);
+            }
           } 
           else if (topic === 'passenger-add-failed') {
             // Update booking status to failed
@@ -46,6 +73,29 @@ export const initConsumer = async () => {
               data: { status: "FAILED", successful: false }
             });
             console.log(`Booking ${messageValue.bookingId} marked as failed: ${messageValue.reason}`);
+            
+            // Get booking details for notification
+            const booking = await prisma.booking.findUnique({
+              where: { id: messageValue.bookingId },
+              include: { ride: true }
+            });
+            
+            if (booking) {
+              // Create user object directly from message data since there's no user table in this service
+              const user = {
+                id: booking.user_id,
+                email: messageValue.email || 'user@example.com',
+                name: messageValue.name || 'User'
+              };
+              
+              // Get meeting point details
+              const meetingPoint = await prisma.meetingPoint.findUnique({
+                where: { id: booking.meeting_point_id }
+              }).catch(() => ({ name: 'Selected Meeting Point' }));
+              
+              // Send booking failed notification
+              notificationService.sendBookingFailed(booking, user, booking.ride, meetingPoint, messageValue.reason || 'Failed to add passenger to ride');
+            }
           }
           else if (topic === 'ride-created') {
             // Create or update local ride data

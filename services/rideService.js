@@ -69,4 +69,17 @@ export class RideService {
       }
     });
   }
+
+  // Get meeting point details
+  async getMeetingPoint(meetingPointId) {
+    const meetingPoint = await prisma.localRideMeetingPoint.findUnique({
+      where: { id: meetingPointId }
+    });
+
+    if (!meetingPoint) {
+      return { name: "Selected Meeting Point" }; // Default if not found
+    }
+
+    return meetingPoint;
+  }
 }
