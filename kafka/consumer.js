@@ -50,13 +50,15 @@ export const initConsumer = async () => {
             });
             
             if (booking) {
-              // Get user details
-              const user = await prisma.user.findUnique({
-                where: { id: booking.user_id }
-              }).catch(() => ({ email: messageValue.email || 'user@example.com', name: 'User' }));
+              // Create user object directly from message data since there's no user table in this service
+              const user = {
+                id: booking.user_id,
+                email: messageValue.email,
+                name: messageValue.email
+              };
               
               // Get meeting point details
-              const meetingPoint = await prisma.meetingPoint.findUnique({
+              const meetingPoint = await prisma.localRideMeetingPoint.findUnique({
                 where: { id: booking.meeting_point_id }
               }).catch(() => ({ name: 'Selected Meeting Point' }));
               
@@ -79,10 +81,12 @@ export const initConsumer = async () => {
             });
             
             if (booking) {
-              // Get user details
-              const user = await prisma.user.findUnique({
-                where: { id: booking.user_id }
-              }).catch(() => ({ email: messageValue.email || 'user@example.com', name: 'User' }));
+              // Create user object directly from message data since there's no user table in this service
+              const user = {
+                id: booking.user_id,
+                email: messageValue.email || 'user@example.com',
+                name: messageValue.name || 'User'
+              };
               
               // Get meeting point details
               const meetingPoint = await prisma.meetingPoint.findUnique({

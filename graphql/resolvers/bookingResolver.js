@@ -157,9 +157,8 @@ export const resolvers = {
                 });
                 
                 // Get meeting point details for notification
-                const meetingPoint = await prisma.meetingPoint.findUnique({
-                    where: { id: booking.meeting_point_id }
-                }).catch(() => ({ name: "Selected Meeting Point" })); // Default if not found
+                const rideService = new RideService();
+                const meetingPoint = await rideService.getMeetingPoint(booking.meeting_point_id);
                 
                 // Send booking cancellation notification
                 notificationService.sendBookingCancellation(updatedBooking, context.user, booking.ride, meetingPoint);

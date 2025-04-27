@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure the notification service URL
-const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001/notifications';
+const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3001';
 
 /**
  * Service to handle sending notifications through the notification service
@@ -22,14 +22,14 @@ export class NotificationService {
         to: user.email,
         subject: 'Booking Confirmation - GIU Carpooling',
         payload: {
-          username: user.name || user.email,
+          username: user.email,
           date: new Date(ride.departure_time).toLocaleString(),
-          fromPlace: meetingPoint.name || 'Meeting Point',
+          fromPlace: 'Meeting Point',
           toPlace: ride.to_giu ? 'GIU' : 'Home Area',
         }
       };
 
-      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notify`, payload);
+      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notifications/notify`, payload);
       console.log(`Booking confirmation notification sent to ${user.email}`);
       return response.data;
     } catch (error) {
@@ -50,7 +50,7 @@ export class NotificationService {
   async sendBookingCancellation(booking, user, ride, meetingPoint) {
     try {
       const payload = {
-        type: 'booking',
+        type: 'bookingCancellation',
         to: user.email,
         subject: 'Booking Cancellation - GIU Carpooling',
         payload: {
@@ -62,7 +62,7 @@ export class NotificationService {
         }
       };
 
-      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notify`, payload);
+      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notifications/notify`, payload);
       console.log(`Booking cancellation notification sent to ${user.email}`);
       return response.data;
     } catch (error) {
@@ -95,11 +95,41 @@ export class NotificationService {
         }
       };
 
-      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notify`, payload);
+      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notifications/notify`, payload);
       console.log(`Booking failed notification sent to ${user.email}`);
       return response.data;
     } catch (error) {
       console.error('Error sending booking failed notification:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Send a ride reminder notification
+   * @param {Object} user - The user who booked the ride
+   * @param {Object} ride - The ride details
+   * @param {Object} meetingPoint - The meeting point details
+   * @returns {Promise<Object>} - Response from notification service
+   */
+  async sendRideReminder(user, ride, meetingPoint) {
+    try {
+      const payload = {
+        type: 'reminder',
+        to: user.email,
+        subject: 'Ride Reminder - Your Ride is Starting Soon',
+        payload: {
+          passengerName: user.name || user.email,
+          fromPlace: meetingPoint.name || 'Meeting Point',
+          toPlace: ride.to_giu ? 'GIU' : 'Home Area',
+          departureTime: new Date(ride.departure_time).toLocaleString()
+        }
+      };
+
+      const response = await axios.post(`${NOTIFICATION_SERVICE_URL}/notifications/notify`, payload);
+      console.log(`Ride reminder notification sent to ${user.email}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error sending ride reminder notification:', error.message);
       return { success: false, error: error.message };
     }
   }
