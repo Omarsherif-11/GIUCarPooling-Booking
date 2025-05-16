@@ -1,10 +1,16 @@
 import { Kafka } from 'kafkajs';
 import { prisma } from '../db.js';
 
-// Create the client with the broker list
+// Create the client with the broker list and authentication
 const kafka = new Kafka({
   clientId: 'booking-service',
-  brokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(',') : ['localhost:9092']
+  brokers: process.env.KAFKA_BROKERS ? process.env.KAFKA_BROKERS.split(',') : ['localhost:9092'],
+  ssl: true,
+  sasl: process.env.KAFKA_USERNAME && process.env.KAFKA_PASSWORD ? {
+    mechanism: 'plain',
+    username: process.env.KAFKA_USERNAME,
+    password: process.env.KAFKA_PASSWORD
+  } : undefined
 });
 
 // Create a producer
